@@ -1,0 +1,78 @@
+!
+hostname Test1                                                 !set hostname
+enable secret enable
+service password-encryption                                    !enable password encryption in configuration files
+service tcp-keepalives-in                                      !kill timed out sessions inbound
+service tcp-keepalives-out                                     !kill timed out sessions outbound
+no service tcp-small-servers                                   !disable unneeded services
+no service udp-small-servers                                   !disable unneeded services
+no ip http server                                              !turn off http configuration server
+no ip http secure-server                                       !turn off https confiuration server
+no ip source-route                                             !do not allow hosts to specify routes
+ip cef                                                         !increases packet switching speed via cisco express forwarding
+!
+ip name-server 8.8.8.8 8.8.4.4                                 !set google DNS for name server
+ntp server pool.ntp.org                                        !set ntp.org as time server
+login block-for 100 attempts 5 within 100                      !block users from loging in for 100 seconds after 5 invlaid attempts in 100 seconds
+logging buffered 4096                                          !set logging buffer to 4MB
+no service pad                                                 !disable unneeded service
+no ip finger                                                   !disable unneeded seriice
+no service config                                              !disable autloading of config files over the network
+no boot host dhcp                                              !disable autloading of config files over the network
+logging trap 4                                                 !set logging level
+!
+aaa new-model                                                  !enables aaa
+aaa authentication login default local                         !sets auth mode to local
+ip domain name example.com                                     !sets the domain name
+crypto key generate rsa modulus 2048                           !generates rsa key, 2048 bits
+IP SSH version 2                                               !enables ssh v2
+ip scp server enable                                           !enables scp
+username root privilege 15 secret root
+!
+line vty 0 15                                                  !configures virtual terminal lines
+transport input ssh                                            !specifies ssh only
+exec-timeout 60                                                !60 mins to logout
+exit
+!
+interface GigabitEthernet0/0
+no shutdown
+crypto map mymap                                               !apply crypto map to external interface
+ip address 50.74.110.93 255.255.255.248                        !external interface
+no ip unreachables                                             !does not generate ICMP unreachable packets
+no ip redirect                                                 !does not gnerate ICMP redirect packets
+no ip proxy-arp                                                !disables proxy arp
+!
+interface GigabitEthernet0/1
+no shutdown
+ip address 192.168.20.1 255.255.255.0                          !internal interface
+no ip unreachables
+no ip redirect
+no ip proxy-arp
+!
+interface Tunnel1
+ip address 172.16.0.2 255.255.255.0                            !gre tunnel interface
+tunnel source gi0/0                                            !sources traffic from external interface
+tunnel destination 206.111.121.166                             !destination is the peer's external ip
+!
+crypto isakmp policy 10                                        !defines phase 1 attributes
+encryption aes 256                                             !using AES 256 cypher
+hash sha256                                                    !using SHA 256 hashing algorthim
+auth pre-share                                                 !using PSKs
+group 14                                                       !using diffie-hellman group 14 2048bit
+! 
+crypto isakmp key testkey address 206.111.121.166              !sets PSK and peer
+!
+crypto ipsec transform-set myset esp-aes 256 esp-sha-hmac      !defines phase 2 attributes, ESP Mode, AES 256, SHA 
+mode transport                                                 !sets transport mode IPsec
+!
+crypto map mymap 10 ipsec-isakmp                               !combines phase 1 and phase 2 attributes
+set peer 206.111.121.166                                       !peer IP address
+set transform-set myset                                        
+match address vpnendpoints                                     !allows all addresses over VPN
+!
+ip route 0.0.0.0 0.0.0.0 50.74.110.89
+ip route 192.168.10.0 255.255.255.0 172.16.0.1                 !route traffic to remote network via peer's tunnel address
+!
+ip access-list extended vpnendpoints
+permit gre any any
+!
