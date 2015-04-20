@@ -54,4 +54,4 @@ tunnel source gi0/0                                            !sources traffic 
 tunnel destination 52.0.92.163                                 !destination is the peer's external ip
 !
 ip route 172.30.0.0 255.255.255.0 172.16.0.1                   !route traffic to remote network via peer's tunnel address
-ip route 0.0.0.0 0.0.0.0 206.111.121.161
+ip route 0.0.0.0 0.0.0.0 209.111.121.161
