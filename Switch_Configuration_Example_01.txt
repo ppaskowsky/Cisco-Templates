@@ -1,0 +1,153 @@
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!                                                                                                   !
+! Author: Peter Paskowsky                                                                           !
+!                                                                                                   !
+! This is a template for Cisco switches                                                             !
+! The sample device is a Cisco 3750-X 24-P with ipbase software                                     !
+! This configuration has four vlans: transfer, user, server, and guest (which is isolated)          !    
+! The switch is running a DHCP server for the connected vlans                                       !
+! There are trunk ports configured for use with wireless access points                              !
+! All traffic is routed to an upstream router, 192.168.0.1                                          !
+!                                                                                                   !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+enable                                                                   
+configure terminal
+hostname test1                                                         !sets hostname
+enable secret enable
+!
+service password-encryption 	                                         !enable password encryption in configuration files
+service tcp-keepalives-in                                              !kill timed out sessions inbound
+service tcp-keepalives-out                                             !kill timed out sessions outbound
+no service tcp-small-servers                                           !disable unneeded services
+no service udp-small-servers                                           !disable unneeded services
+no ip http server                                                      !turn off http configuration server
+no ip http secure-server                                               !turn off https configuration server
+no ip source-route                                                     !do not allow hosts to specify routes
+!
+ip name-server 8.8.8.8 8.8.4.4                                         !sets google DNS as name server
+ntp server pool.ntp.org                                                !sets pool.ntp.org as NTP server
+ip dhcp snooping                                                       !prevents rouge DHCP servers from asigning IP addresses
+ip dhcp snooping vlan 101,102,103
+login block-for 100 attempts 5 within 100                              !block users from loging in for 100 seconds after 5 invlaid attempts in 100 seconds
+logging buffered 4096                                                  !set logging buffer to 4096
+no lldp run                                                            !disables lldp
+no service pad                                                         !disable unneeded service
+no ip finger                                                           !disable unneeded service
+no service config                                                      !disable autloading of config files over the network
+no boot host dhcp                                                      !disable autloading of config files over the network
+scheduler interval 100                                                 !control the maximum amount of time that can elapse without running system processes
+vtp mode off                                                           !disbles VLAN Trunking Protocol
+logging trap 4                                                         !sets log level
+!
+snmp-server community mycommunity RO                                   !sets SNMP comminity name
+!
+aaa new-model                                                          !enables aaa
+aaa authentication login default local                                 !sets auth mode to local
+ip domain name example.com                                             !sets the domain name
+crypto key generate rsa modulus 2048
+IP SSH version 2                                                       !enables ssh v2
+ip scp server enable                                                   !enables scp
+username root privilege 0 secret root
+!
+line vty 0 15                                                          !configures virtual terminal lines
+transport input ssh                                                    !specifies ssh only
+exit
+!
+vlan 100                                                               !creates vlan
+name "Transfer Network"                                                !names vlan
+exit
+!
+vlan 101
+name "User Network"
+exit
+!
+vlan 102
+name "Server Network"
+exit
+!
+vlan 103
+name "Guest Network"
+exit
+!
+interface Vlan1
+ shutdown                                                              !disables defualt vlan 1
+exit
+!
+interface Vlan100                                                      !creates switch vlan interface and assigns IP
+ description "Transfer Network"
+ ip address 192.168.0.2 255.255.255.0
+exit
+!
+interface Vlan101
+ description "User Network"
+ ip address 192.168.1.1 255.255.255.0
+exit
+!         
+interface Vlan102
+ description "Server Network"
+ ip address 192.168.2.1 255.255.255.0
+exit
+!
+interface Vlan103
+description "Guest Network"
+ip address 192.168.3.1 255.255.255.0
+ip access-group 101 in                                                 !prevents guest network from accessing any private addresses
+!
+access-list 101 deny ip any 10.0.0.0 0.255.255.255 
+access-list 101 deny ip any 192.168.0.0 0.0.255.255 
+access-list 101 deny ip any 172.16.0.0 0.15.255.255
+access-list 101 permit ip any any
+!
+ip dhcp excluded-address 192.168.1.0 192.168.1.100                     !prevents dhcp server from assigning addresses 1-100
+ip dhcp excluded-address 192.168.2.0 192.168.2.100
+ip dhcp excluded-address 192.168.3.0 192.168.3.100
+!
+ip dhcp pool users                                                     !configures cisco dhcp server, sets network, default gateway, dns server, and search domain
+ network 192.168.1.0 255.255.255.0
+ default-router 192.168.1.1
+ dns-server 8.8.8.8 8.8.4.4
+ domain-name example.com
+exit
+!
+ip dhcp pool server
+network 192.168.2.0 255.255.255.0
+ default-router 192.168.2.1
+ dns-server 8.8.8.8 8.8.4.4
+ domain-name example.com
+exit
+!
+ip dhcp pool guest
+network 192.168.3.0 255.255.255.0
+ default-router 192.168.3.1
+ dns-server 8.8.8.8 8.8.4.4
+ domain-name example.com
+exit
+!
+ip routing                                                                      !enables routing
+ip route 0.0.0.0 0.0.0.0 192.168.0.1                                            !sets defualt route to upstream router
+!
+!
+int gi 1/0/1                                                                    !configures ports
+ description "Transfer Network Uplink"
+ switchport access vlan 100
+ switchport mode access
+!
+int range gi 1/0/2-12
+ description "User Port"
+ switchport access vlan 101
+ switchport mode access
+!
+int range gi 1/0/13-20
+ description "Server Port"
+ switchport access vlan 102
+ switchport mode access
+!
+int range gi 1/0/22-24                                                           !configures trunk port for wireless ap, with access to user, server, and guest networks
+ description "Wireless AP"
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 102
+ switchport trunk allowed vlan 101,102,103
+ switchport mode trunk
+!
