@@ -1,0 +1,181 @@
+
+! Author: Peter Paskowsky
+! Templates for 2602 Autonomous Wireless Access points
+! In Point to Multipoint Configuration
+
+-------------------------------------------------------------------
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! WPA2 Root Bridge With Multiple VLANs !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+en
+conf t
+hostname TEST_ROOT_AP
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! define non-broadcast SSID in infrastructure mode   
+! enable wpa2, set PSK          
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Dot11 ssid TEST-SSID
+authentication open
+authentication key-management wpa version 2
+wpa-psk ascii mypassword
+infrastructure-ssid
+vlan 1
+
+!!!!!!!!!!!!!!!!!!!!!!
+! assign ssid to 2.4ghz radio and set role to root bridge
+! enable wap2 encryption on each vlan
+!!!!!!!!!!!!!!!!!!!!!!
+
+interface Dot11Radio 0
+station-role root bridge
+no shut
+encryption vlan 1 mode ciphers aes-ccm
+encryption vlan 2 mode ciphers aes-ccm
+encryption vlan 3 mode ciphers aes-ccm
+
+!!!!!!!!!!!!!!!!!!!!!!
+! define radio sub interfaces, attach them to bridge groups
+!!!!!!!!!!!!!!!!!!!!!!
+
+interface Dot11Radio0.1
+ encapsulation dot1Q 1 native
+ bridge-group 1
+
+interface Dot11Radio0.2
+ encapsulation dot1Q 2
+ bridge-group 2
+
+interface Dot11Radio0.3
+ encapsulation dot1Q 3
+ bridge-group 3
+
+!!!!!!!!!!!!!!!!!!!!!!
+! define gigabit ethernet sub interfaces for each vlan
+! attach them to bridge groups
+!!!!!!!!!!!!!!!!!!!!!!
+
+Interface GigabitEthernet 0
+ no shut
+
+interface GigabitEthernet 0.1
+ encapsulation dot1Q 1 native
+ bridge-group 1
+
+interface GigabitEthernet 0.2
+ encapsulation dot1Q 2 
+ bridge-group 2
+
+interface GigabitEthernet 0.3
+ encapsulation dot1Q 3
+ bridge-group 3
+
+!!!!!!!!!!!!!!!!!!!!!!
+! define bridge virtual interface
+! all bridge traffic goes through this interface
+!!!!!!!!!!!!!!!!!!!!!!
+
+interface BVI1
+ip address 192.168.0.10 255.255.255.0
+
+!!!!!!!!!!!!!!!!!!!!!!!
+! apply ssid to 2.4ghz radio
+!!!!!!!!!!!!!!!!!!!!!!!
+
+interface Dot11Radio 0
+ssid TEST-SSID
+
+--------------------------------------------------------------
+
+!
+! The only difference between the root and non-root bridge
+! Is the station role, hostname, and IP
+!
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! WPA2 NON Root Bridge With Multiple VLANs !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+en
+conf t
+hostname TEST_NON_ROOT_AP
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! define non-broadcast SSID in infrastructure mode   
+! enable wpa2, set PSK          
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Dot11 ssid TEST-SSID
+authentication open
+authentication key-management wpa version 2
+wpa-psk ascii mypassword
+infrastructure-ssid
+vlan 1
+
+!!!!!!!!!!!!!!!!!!!!!!
+! assign ssid to 2.4ghz radio and set role to non-root bridge
+! enable wap2 encryption on each vlan
+!!!!!!!!!!!!!!!!!!!!!!
+
+interface Dot11Radio 0
+station-role non-root bridge
+no shut
+encryption vlan 1 mode ciphers aes-ccm
+encryption vlan 2 mode ciphers aes-ccm
+encryption vlan 3 mode ciphers aes-ccm
+
+!!!!!!!!!!!!!!!!!!!!!!
+! define radio sub interfaces, attach them to bridge groups
+!!!!!!!!!!!!!!!!!!!!!!
+
+interface Dot11Radio0.1
+ encapsulation dot1Q 1 native
+ bridge-group 1
+
+interface Dot11Radio0.2
+ encapsulation dot1Q 2
+ bridge-group 2
+
+interface Dot11Radio0.3
+ encapsulation dot1Q 3
+ bridge-group 3
+
+!!!!!!!!!!!!!!!!!!!!!!
+! define gigabit ethernet sub interfaces for each vlan
+! attach them to bridge groups
+!!!!!!!!!!!!!!!!!!!!!!
+
+Interface GigabitEthernet 0
+ no shut
+
+interface GigabitEthernet 0.1
+ encapsulation dot1Q 1 native
+ bridge-group 1
+
+interface GigabitEthernet 0.2
+ encapsulation dot1Q 2 
+ bridge-group 2
+
+interface GigabitEthernet 0.3
+ encapsulation dot1Q 3
+ bridge-group 3
+
+!!!!!!!!!!!!!!!!!!!!!!
+! define bridge virtual interface
+! all bridge traffic goes through this interface
+!!!!!!!!!!!!!!!!!!!!!!
+
+interface BVI1
+ip address 192.168.0.20 255.255.255.0
+
+!!!!!!!!!!!!!!!!!!!!!!!
+! apply ssid to 2.4ghz radio
+!!!!!!!!!!!!!!!!!!!!!!!
+
+interface Dot11Radio 0
+ssid TEST-SSID
+
+
